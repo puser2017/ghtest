@@ -1,52 +1,77 @@
 {
 	"workspace": {
-		"-tabs-5": {
-			"tabname": "Tab 3",
-			"go": {
-				"script": "func mainReturn() interface{} {
-					    bigqueryService, err := getBigqueryService()
-					    if(err != nil) {
-					        return \"ERROR\"
-					    }
-					    var useQueryCache bool = true
-					    billingProjectId := \"<var_billingProject>\"
-					    projectId := \"<var_projectId>\"
-					    datasetId := \"<var_datasetId>\"
-					    tableId := \"<var_tableId>\"
-					    var query = \"select * from [\" + projectId + \":\" + datasetId + \".\" + tableId + \"];\"
-					    var request bigquery.QueryRequest = bigquery.QueryRequest{
-					        Kind: \"bigquery#queryRequest\",
-					        Query: query,
-					        UseQueryCache: &useQueryCache,
-					        //To turn of legacySql, do this:
-					        //UseLegacySql:      false,
-					        //ForceSendFields:   []string{\"UseLegacySql\"},
-					    }
-					    //Run the query, using JobsService
-					    //https://godoc.org/google.golang.org/api/bigquery/v2#JobsService.Query
-					    call := bigqueryService.Jobs.Query(billingProjectId, &request)
-					    //executes the query
-					    //https://godoc.org/google.golang.org/api/bigquery/v2#JobsQueryCall
-					    resp, err := call.Do()
-					    if err != nil {
-					        return \"ERROR\"
-					    }
-					    var results string = \"\"
-					    //loop through the rows, it is a slice of TableRow pointers, []*TableRow
-					    rows := resp.Rows
-					    for i :=0 ; i < len(rows); i++ {
-					        row := rows[i]
-					        //https://godoc.org/google.golang.org/api/bigquery/v2#TableRow
-					        //A tableRow is a slice of TableCell pointers []*TableCell
-					        fields := row.F
-					        for fi := 0; fi < len(fields); fi++ {
-					            results = results + xSprintf(\"Field %v = %v, \", fi, fields[fi].V)
-					        }
-					        results = results + \"\
-					\"
-					    }
-					    return results
-					}"
+		"-tabs-4": {
+			"tabname": "Tab 2",
+			"query": {
+				"useQueryCache": false,
+				"destinationTable": {
+					"projectId": "p",
+					"datasetId": "d",
+					"tableId": "t"
+				},
+				"writeDisposition": "WRITE_APPEND",
+				"useLegacySql": false,
+				"maximumBytesBilled": 2251799813685248,
+				"querytext": "##bq
+					WITH trips AS (
+						select pickup_datetime, pickup_longitude, pickup_latitude, dropoff_longitude, dropoff_latitude
+						FROM `bigquery-public-data.new_york.tlc_yellow_trips_2016`
+						WHERE pickup_longitude IS NOT NULL
+						AND pickup_latitude IS NOT NULL
+						AND dropoff_longitude IS NOT NULL
+						AND dropoff_longitude IS NOT NULL
+						AND EXTRACT(MONTH FROM pickup_datetime) = 1
+						LIMIT 100000
+					)
+					SELECT *
+					FROM trips
+					WHERE pickup_longitude >= -90 AND pickup_longitude < 91
+					AND pickup_latitude >= -90 AND pickup_latitude < 91
+					AND dropoff_longitude >= -90 AND dropoff_longitude < 91
+					AND dropoff_latitude >= -90 AND dropoff_latitude < 91
+					AND pickup_longitude != 0
+					AND dropoff_longitude != 0
+					
+					##bq
+					WITH geo AS (
+						SELECT 
+							'Pickup' AS pickup_desc
+							,'Dropoff' AS dropoff_desc
+						  ,pickup_longitude
+							,ST_GEOGPOINT(pickup_longitude, pickup_latitude) as pickup
+							,ST_GEOGPOINT(dropoff_longitude, dropoff_latitude) as dropoff
+					--		,ST_MAKELINE(ST_GEOGPOINT(pickup_longitude, pickup_latitude), ST_GEOGPOINT(dropoff_longitude, dropoff_latitude)) As pd 
+						--	,ST_CENTROID(ST_MAKELINE(ST_GEOGPOINT(pickup_longitude, pickup_latitude), ST_GEOGPOINT(dropoff_longitude, dropoff_latitude))) AS centroid
+						  ,ST_DISTANCE(ST_GEOGPOINT(pickup_longitude, pickup_latitude), ST_GEOGPOINT(dropoff_longitude, dropoff_latitude)) AS distance
+						FROM `formal-cascade-571.temp.tmp_sm_geo`
+					)
+					SELECT
+					  pickup_desc
+						,dropoff_desc
+						,pickup
+						,dropoff
+						,ST_MAKELINE(pickup, dropoff) As pd
+						,distance/100 AS d
+						,IF(distance/100 > 100, '#FF0000', if(distance/100 < 80, '#38761D', '#0000FF')) AS distance
+					FROM geo
+					WHERE distance/100 > 5
+					ORDER BY pickup_longitude
+					
+					"
+			},
+			"options": {
+				"mode": "standard",
+				"autoUpdateSqlMode": false,
+				"enhancedMode": false,
+				"destinationTbl": "p.d.t",
+				"retention": "1",
+				"retentionUnit": "hours",
+				"allowLargeResults": true,
+				"flattenResults": true,
+				"maximumBillingTier": "",
+				"maximumBytes": "2",
+				"maximumBytesMultiplier": "5",
+				"location": "EU"
 			}
 		}
 	}
