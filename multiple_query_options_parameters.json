@@ -1,0 +1,346 @@
+{
+	"workspace": {
+		"-tabs-3": {
+			"tabname": "git - query3",
+			"query": {
+				"useQueryCache": false,
+				"destinationTable": {
+					"projectId": "p",
+					"datasetId": "d",
+					"tableId": "t2"
+				},
+				"writeDisposition": "WRITE_TRUNCATE",
+				"useLegacySql": false,
+				"maximumBytesBilled": 2199023255552,
+				"querytext": "##bq
+					WITH trips AS (
+						select pickup_datetime, pickup_longitude, pickup_latitude, dropoff_longitude, dropoff_latitude
+						FROM `bigquery-public-data.new_york.tlc_yellow_trips_2016`
+						WHERE pickup_longitude IS NOT NULL
+						AND pickup_latitude IS NOT NULL
+						AND dropoff_longitude IS NOT NULL
+						AND dropoff_longitude IS NOT NULL
+						AND EXTRACT(MONTH FROM pickup_datetime) = 1
+						LIMIT 100000
+					)
+					SELECT *
+					FROM trips
+					WHERE pickup_longitude >= -90 AND pickup_longitude < 91
+					AND pickup_latitude >= -90 AND pickup_latitude < 91
+					AND dropoff_longitude >= -90 AND dropoff_longitude < 91
+					AND dropoff_latitude >= -90 AND dropoff_latitude < 91
+					AND pickup_longitude != 0
+					AND dropoff_longitude != 0
+					
+					##bq
+					WITH geo AS (
+						SELECT 
+							'Pickup' AS pickup_desc
+							,'Dropoff' AS dropoff_desc
+						  ,pickup_longitude
+							,ST_GEOGPOINT(pickup_longitude, pickup_latitude) as pickup
+							,ST_GEOGPOINT(dropoff_longitude, dropoff_latitude) as dropoff
+					--		,ST_MAKELINE(ST_GEOGPOINT(pickup_longitude, pickup_latitude), ST_GEOGPOINT(dropoff_longitude, dropoff_latitude)) As pd 
+						--	,ST_CENTROID(ST_MAKELINE(ST_GEOGPOINT(pickup_longitude, pickup_latitude), ST_GEOGPOINT(dropoff_longitude, dropoff_latitude))) AS centroid
+						  ,ST_DISTANCE(ST_GEOGPOINT(pickup_longitude, pickup_latitude), ST_GEOGPOINT(dropoff_longitude, dropoff_latitude)) AS distance
+						FROM `bigquery-public-data.temp.tmp_sm_geo`
+					)
+					SELECT
+					  pickup_desc
+						,dropoff_desc
+						,pickup
+						,dropoff
+						,ST_MAKELINE(pickup, dropoff) As pd
+						,distance/100 AS d
+						,IF(distance/100 > 100, '#FF0000', if(distance/100 < 80, '#38761D', '#0000FF')) AS distance
+					FROM geo
+					WHERE distance/100 > 5
+					ORDER BY pickup_longitude
+					
+					"
+			},
+			"options": {
+				"mode": "standard",
+				"autoUpdateSqlMode": true,
+				"enhancedMode": false,
+				"destinationTbl": "p.d.t2",
+				"retention": "1",
+				"retentionUnit": "hours",
+				"allowLargeResults": true,
+				"flattenResults": false,
+				"maximumBillingTier": "",
+				"maximumBytes": "2",
+				"maximumBytesMultiplier": "4",
+				"location": null
+			}
+		},
+		"-tabs-5": {
+			"tabname": "git - query2",
+			"query": {
+				"allowLargeResults": false,
+				"flattenResults": true,
+				"useQueryCache": false,
+				"destinationTable": {
+					"projectId": "p",
+					"datasetId": "d",
+					"tableId": "t3"
+				},
+				"writeDisposition": "WRITE_EMPTY",
+				"useLegacySql": true,
+				"maximumBytesBilled": 2251799813685248,
+				"destinationEncryptionConfiguration": {
+					"kmsKeyName": "xxx"
+				},
+				"querytext": "select a.zipcode, a.population
+					from `bigquery-public-data.census_bureau_usa.population_by_zip_2010` a
+					WHERE gender = ''
+					ORDER bY 1
+					
+					
+					##bq
+					--33,119
+					select a.zipcode, z.zipcode_geom, a.population
+					from `bigquery-public-data.census_bureau_usa.population_by_zip_2010` a
+					JOIN `bigquery-public-data.utility_us.zipcode_area` z
+					ON z.zipcode = a.zipcode
+					WHERE gender = ''
+					ORDER bY 1
+					
+					##bq
+					-- 13,013
+					select a.zipcode, ST_GEOGFROMTEXT(za.zipcode_geom) AS zipcode_geom, a.population, ca.county_name, ca.county_geom
+					from `bigquery-public-data.census_bureau_usa.population_by_zip_2010` a
+					JOIN `bigquery-public-data.utility_us.zipcode_area` za
+					ON za.zipcode = a.zipcode
+					JOIN `bigquery-public-data.utility_us.us_county_area` ca
+					ON ST_WITHIN(ST_GEOGFROMTEXT(za.zipcode_geom), ca.county_geom)
+					WHERE gender = ''
+					ORDER bY 1
+					
+					##bq
+					-- 12,2936
+					select a.zipcode, ST_GEOGFROMTEXT(za.zipcode_geom) AS zipcode_geom, a.population, ca.name, ca.csa_geom
+					from `bigquery-public-data.census_bureau_usa.population_by_zip_2010` a
+					JOIN `bigquery-public-data.utility_us.zipcode_area` za
+					ON za.zipcode = a.zipcode
+					JOIN `bigquery-public-data.utility_us.us_csa_area` ca
+					ON ST_WITHIN(ST_GEOGFROMTEXT(za.zipcode_geom), ca.csa_geom)
+					WHERE gender = ''
+					ORDER bY 1
+					
+					##bq
+					-- 14,880
+					select a.zipcode, ST_GEOGFROMTEXT(za.zipcode_geom) AS zipcode_geom, a.population, ma.name, ma.msa_geom
+					from `bigquery-public-data.census_bureau_usa.population_by_zip_2010` a
+					JOIN `bigquery-public-data.utility_us.zipcode_area` za
+					ON za.zipcode = a.zipcode
+					JOIN `bigquery-public-data.utility_us.us_msa_area` ma
+					ON ST_WITHIN(ST_GEOGFROMTEXT(za.zipcode_geom), ma.msa_geom)
+					WHERE gender = ''
+					ORDER bY 1
+					
+					##bq
+					-- 29,474
+					select a.zipcode, ST_GEOGFROMTEXT(za.zipcode_geom) AS zipcode_geom, a.population, sa.state_name, sa.state_geom
+					from `bigquery-public-data.census_bureau_usa.population_by_zip_2010` a
+					JOIN `bigquery-public-data.utility_us.zipcode_area` za
+					ON za.zipcode = a.zipcode
+					JOIN `bigquery-public-data.utility_us.us_states_area` sa
+					ON ST_WITHIN(ST_GEOGFROMTEXT(za.zipcode_geom), sa.state_geom)
+					WHERE gender = ''
+					ORDER bY 1
+					
+					##bq
+					
+					"
+			},
+			"options": {
+				"mode": "legacy",
+				"autoUpdateSqlMode": true,
+				"enhancedMode": false,
+				"destinationTbl": "p.d.t3",
+				"retention": "",
+				"retentionUnit": "days",
+				"maximumBillingTier": "",
+				"maximumBytes": "2",
+				"maximumBytesMultiplier": "5",
+				"location": "us-west2"
+			}
+		},
+		"-tabs-6": {
+			"tabname": "git - query",
+			"query": {
+				"useQueryCache": false,
+				"useLegacySql": false,
+				"querytext": "##bq /* point */
+					/*
+					blue #0000ff 
+					green #00ff00
+					*/
+					SELECT ST_GEOGPOINT(longitude, latitude) AS geo, name, if(RAND() < .5, '#0000ff', '#00ff00') AS color, RAND() * 2 AS size
+					FROM `bigquery-public-data.new_york_citibike.citibike_stations`
+					LIMIT 500
+					
+					##bq /* line */
+					SELECT ST_MAKELINE(ST_GEOGPOINT(start_station_longitude, start_station_latitude), 
+					  ST_GEOGPOINT(end_station_longitude, end_station_latitude)) AS start_end, 
+						start_station_name, 
+						end_station_name
+					FROM `bigquery-public-data.new_york_citibike.citibike_trips`
+					LIMIT 50
+					
+					##bq /* polygon */
+					-- `bigquery-public-data.utility_us.us_states_area`
+					
+					##bq /* multiple points */
+					SELECT ST_GEOGPOINT(start_station_longitude, start_station_latitude) AS start_geo, 
+					  ST_GEOGPOINT(end_station_longitude, end_station_latitude) AS end_geo, 
+						start_station_name, 
+						end_station_name
+					FROM `bigquery-public-data.new_york_citibike.citibike_trips`
+					LIMIT 50
+					
+					
+					
+					"
+			},
+			"options": {
+				"mode": "standard",
+				"autoUpdateSqlMode": false,
+				"enhancedMode": false,
+				"destinationTbl": "",
+				"writeDisposition": "WRITE_EMPTY",
+				"retention": "",
+				"retentionUnit": "days",
+				"allowLargeResults": false,
+				"flattenResults": true,
+				"maximumBillingTier": "",
+				"maximumBytes": "",
+				"maximumBytesMultiplier": "3",
+				"location": null
+			}
+		}
+	},
+	"parameters": {
+		"var_string": {
+			"type": "string",
+			"value": "abc",
+			"schema": ""
+		},
+		"var_num": {
+			"type": "number",
+			"value": "1",
+			"schema": ""
+		},
+		"var_bol": {
+			"type": "boolean",
+			"value": "true",
+			"schema": ""
+		},
+		"var_rec": {
+			"type": "record",
+			"value": "10,apple,true",
+			"schema": "col1,col2,col3"
+		},
+		"var_j": {
+			"type": "string",
+			"value": "<var_p>",
+			"schema": ""
+		},
+		"var_p": {
+			"type": "string",
+			"value": "apple",
+			"schema": ""
+		},
+		"var_rec1": {
+			"type": "record",
+			"value": "10,apple,true",
+			"schema": "a number,b string,c boolean"
+		},
+		"var_rec2": {
+			"type": "record",
+			"value": "10,apple,true",
+			"schema": "a,b,c"
+		},
+		"var_rec3": {
+			"type": "record",
+			"value": "10,apple,true",
+			"schema": ""
+		},
+		"var_rec4": {
+			"type": "record",
+			"value": "apple,10",
+			"schema": "name string, price, isfresh, color"
+		},
+		"var_rec5": {
+			"type": "record",
+			"value": ",10,,red",
+			"schema": "name,price,isfresh,color"
+		},
+		"var_rec6": {
+			"type": "record",
+			"value": ",",
+			"schema": "name string, price number, isfresh boolean, color string"
+		},
+		"var_rec7": {
+			"type": "record",
+			"value": "<var_string>,<var_num>",
+			"schema": ""
+		},
+		"var_rec8": {
+			"type": "record",
+			"value": "<var_value>",
+			"schema": ""
+		},
+		"var_value": {
+			"type": "string",
+			"value": "apple,10",
+			"schema": ""
+		},
+		"var_test1": {
+			"type": "record",
+			"value": "42,things",
+			"schema": "a number, b string"
+		},
+		"var_test2": {
+			"type": "record",
+			"value": "33,hello",
+			"schema": "aa,bb"
+		},
+		"var_test3": {
+			"type": "record",
+			"value": "1,322,foobar",
+			"schema": ""
+		},
+		"var_test4": {
+			"type": "record",
+			"value": "NotNumber",
+			"schema": "x number"
+		},
+		"var_test5": {
+			"type": "record",
+			"value": "33,34",
+			"schema": "x number,y number,z number"
+		},
+		"var_test6": {
+			"type": "record",
+			"value": "x,2,true,,2020-01-01",
+			"schema": "a string,b numeric,c boolean,d boolean,dd date"
+		},
+		"var_test7": {
+			"type": "record",
+			"value": "x1,x2,x2",
+			"schema": "a,,c"
+		},
+		"var_test8": {
+			"type": "record",
+			"value": "x1,x2",
+			"schema": "a string, b string, c string"
+		},
+		"var_test9": {
+			"type": "record",
+			"value": "33,,35",
+			"schema": "x number,y number,z number"
+		}
+	}
+}
