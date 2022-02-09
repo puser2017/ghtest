@@ -23,12 +23,10 @@ WITH geo AS (
 	SELECT 
 		'Pickup' AS pickup_desc
 		,'Dropoff' AS dropoff_desc
-	  ,pickup_longitude
+		,pickup_longitude
 		,ST_GEOGPOINT(pickup_longitude, pickup_latitude) as pickup
 		,ST_GEOGPOINT(dropoff_longitude, dropoff_latitude) as dropoff
---		,ST_MAKELINE(ST_GEOGPOINT(pickup_longitude, pickup_latitude), ST_GEOGPOINT(dropoff_longitude, dropoff_latitude)) As pd 
-	--	,ST_CENTROID(ST_MAKELINE(ST_GEOGPOINT(pickup_longitude, pickup_latitude), ST_GEOGPOINT(dropoff_longitude, dropoff_latitude))) AS centroid
-	  ,ST_DISTANCE(ST_GEOGPOINT(pickup_longitude, pickup_latitude), ST_GEOGPOINT(dropoff_longitude, dropoff_latitude)) AS distance
+		,ST_DISTANCE(ST_GEOGPOINT(pickup_longitude, pickup_latitude), ST_GEOGPOINT(dropoff_longitude, dropoff_latitude)) AS distance
 	FROM `formal-cascade-571.temp.tmp_sm_geo`
 )
 SELECT
