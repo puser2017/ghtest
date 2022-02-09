@@ -1,0 +1,1060 @@
+{
+	"workspace": {
+		"-tabs-4": {
+			"tabname": "git - ddl",
+			"query": {
+				"querytext": "--https://cloud.google.com/bigquery/docs/data-definition-language#creating_a_new_table_from_an_existing_table
+					##bq
+					#standardSQL
+					--Creating a new table
+					CREATE TABLE `formal-cascade-571.temp.tmp_sm_ddl1`
+					(
+					 x INT64 OPTIONS(description=\"An optional INTEGER field\"),
+					 y STRUCT<
+						 a ARRAY<STRING> OPTIONS(description=\"A repeated STRING field\"),
+						 b BOOL
+					 >
+					)
+					PARTITION BY DATE(_PARTITIONTIME)
+					OPTIONS(
+					 expiration_timestamp=TIMESTAMP \"2020-01-01 00:00:00 UTC\",
+					 partition_expiration_days=1,
+					 description=\"a table that expires in 2020, with each partition living for 24 hours\",
+					 labels=[(\"org_unit\", \"development\")]
+					)
+					
+					##bq
+					#standardSQL
+					--Creating a new table from an existing table
+					CREATE TABLE `formal-cascade-571.temp.tmp_sm_ddl2`
+					OPTIONS(
+					 description=\"Top ten words per Shakespeare corpus\"
+					) AS
+					SELECT
+					 corpus,
+					 ARRAY_AGG(STRUCT(word, word_count) ORDER BY word_count DESC LIMIT 10) AS top_words
+					FROM `bigquery-public-data.samples.shakespeare`
+					GROUP BY corpus; 
+					 
+					 
+					##bq
+					#standardSQL
+					-- Creating a table only if the table doesn't exist
+					CREATE TABLE IF NOT EXISTS  `formal-cascade-571.temp.tmp_sm_ddl2` (x INT64, y STRUCT<a ARRAY<STRING>, b BOOL>)
+					OPTIONS(
+					 expiration_timestamp=TIMESTAMP \"2020-01-01 00:00:00 UTC\",
+					 description=\"a table that expires in 2020\",
+					 labels=[(\"org_unit\", \"development\")]
+					)
+					
+					##bq
+					#standardSQL
+					-- Creating or replacing a table
+					CREATE OR REPLACE TABLE `formal-cascade-571.temp.tmp_sm_ddl3` (x INT64, y STRUCT<a ARRAY<STRING>, b BOOL>)
+					OPTIONS(
+					 expiration_timestamp=TIMESTAMP \"2020-01-01 00:00:00 UTC\",
+					 description=\"a table that expires in 2020\",
+					 labels=[(\"org_unit\", \"development\")]
+					)
+					
+					##bq
+					#standardSQL
+					-- Creating a table with REQUIRED columns
+					CREATE TABLE `formal-cascade-571.temp.tmp_sm_ddl4` (
+					 x INT64 NOT NULL,
+					 y STRUCT<
+						 a ARRAY<STRING>,
+						 b BOOL NOT NULL,
+						 c FLOAT64
+					 > NOT NULL,
+					 z STRING
+					)
+					 
+					##bq
+					#standardSQL
+					--Creating a partitioned table
+					CREATE TABLE `formal-cascade-571.temp.tmp_sm_ddl5` (transaction_id INT64, transaction_date DATE)
+					PARTITION BY transaction_date
+					OPTIONS(
+					 partition_expiration_days=3,
+					 description=\"a table partitioned by transaction_date\"
+					)
+					
+					##bq
+					#standardSQL
+					--Creating a partitioned table from the result of a query
+					CREATE TABLE `formal-cascade-571.temp.tmp_sm_ddl6`
+					PARTITION BY date
+					OPTIONS (
+					 partition_expiration_days=365,
+					 description=\"weather stations with precipitation, partitioned by day\"
+					) AS
+					SELECT
+					 DATE(CAST(year AS INT64), CAST(mo AS INT64), CAST(da AS INT64)) AS date,
+					 (SELECT ANY_VALUE(name) FROM `bigquery-public-data.noaa_gsod.stations` AS stations
+						WHERE stations.usaf = stn) AS station_name,  -- Stations may have multiple names
+					 prcp
+					FROM `bigquery-public-data.noaa_gsod.gsod2017` AS weather
+					WHERE prcp != 99.9  -- Filter unknown values
+					 AND prcp > 0      -- Filter stations/days with no precipitation
+					
+					##bq
+					-- Creating a new view
+					#standardSQL
+					CREATE VIEW `formal-cascade-571.temp.tmp_sm_ddl_v1`
+					OPTIONS(
+					 expiration_timestamp=TIMESTAMP_ADD(CURRENT_TIMESTAMP(), INTERVAL 48 HOUR),
+					 friendly_name=\"newview\",
+					 description=\"a view that expires in 2 days\",
+					 labels=[(\"org_unit\", \"development\")]
+					)
+					AS SELECT 'column_1' as c1, 'column_2' as c2, 'column_3' as c3
+					
+					##bq
+					-- Creating a view only if the view doesn't exist
+					#standardSQL
+					CREATE VIEW IF NOT EXISTS `formal-cascade-571.temp.tmp_sm_ddl_v1`
+					OPTIONS(
+					 expiration_timestamp=TIMESTAMP_ADD(CURRENT_TIMESTAMP(), INTERVAL 48 HOUR),
+					 friendly_name=\"newview\",
+					 description=\"a view that expires in 2 days\",
+					 labels=[(\"org_unit\", \"development\")]
+					)
+					AS SELECT 'column_1' as c1, 'column_2' as c2, 'column_3' as c3
+					
+					##bq
+					-- Creating or replacing a view
+					#standardSQL
+					CREATE OR REPLACE VIEW `formal-cascade-571.temp.tmp_sm_ddl_v1`
+					OPTIONS(
+					 expiration_timestamp=TIMESTAMP_ADD(CURRENT_TIMESTAMP(), INTERVAL 48 HOUR),
+					 friendly_name=\"newview\",
+					 description=\"a view that expires in 1 days\",
+					 labels=[(\"org_unit\", \"development\")]
+					)
+					AS SELECT 'column_1' as c1, 'column_2' as c2, 'column_3' as c3
+					
+					##bq
+					-- Deleting a table
+					DROP TABLE `formal-cascade-571.temp.tmp_sm_ddl1`
+					
+					##bq
+					-- Deleting a table only if the table exists
+					DROP TABLE IF EXISTS `formal-cascade-571.temp.tmp_sm_ddl1`
+					
+					##bq
+					-- Deleting a view
+					DROP VIEW `formal-cascade-571.temp.tmp_sm_ddl_v1`
+					
+					##bq
+					-- Deleting a view only if the view exists
+					DROP VIEW IF EXISTS `formal-cascade-571.temp.tmp_sm_ddl_v1`
+					
+					##bq
+					-- models
+					-- 
+					#standardSQL
+					CREATE MODEL `formal-cascade-571.temp.tmp_sm_natality_model2`
+					OPTIONS
+					  (model_type='linear_reg',
+					    input_label_cols=['weight_pounds']) AS
+					SELECT
+					  weight_pounds,
+					  is_male,
+					  gestation_weeks,
+					  mother_age,
+					  CAST(mother_race AS string) AS mother_race
+					FROM
+					  `bigquery-public-data.samples.natality`
+					WHERE
+					  weight_pounds IS NOT NULL
+					  AND RAND() < 0.001
+					LIMIT 100
+					
+					##bq
+					-- clean up
+					drop table `formal-cascade-571.temp.tmp_sm_ddl`
+					drop table `formal-cascade-571.temp.tmp_sm_ddl2`
+					drop table `formal-cascade-571.temp.tmp_sm_ddl3`
+					drop table `formal-cascade-571.temp.tmp_sm_ddl4`
+					drop table `formal-cascade-571.temp.tmp_sm_ddl5`
+					drop table `formal-cascade-571.temp.tmp_sm_ddl6`
+					
+					"
+			}
+		},
+		"-tabs-5": {
+			"tabname": "git - query3",
+			"query": {
+				"querytext": "##bq
+					WITH trips AS (
+						select pickup_datetime, pickup_longitude, pickup_latitude, dropoff_longitude, dropoff_latitude
+						FROM `bigquery-public-data.new_york.tlc_yellow_trips_2016`
+						WHERE pickup_longitude IS NOT NULL
+						AND pickup_latitude IS NOT NULL
+						AND dropoff_longitude IS NOT NULL
+						AND dropoff_longitude IS NOT NULL
+						AND EXTRACT(MONTH FROM pickup_datetime) = 1
+						LIMIT 100000
+					)
+					SELECT *
+					FROM trips
+					WHERE pickup_longitude >= -90 AND pickup_longitude < 91
+					AND pickup_latitude >= -90 AND pickup_latitude < 91
+					AND dropoff_longitude >= -90 AND dropoff_longitude < 91
+					AND dropoff_latitude >= -90 AND dropoff_latitude < 91
+					AND pickup_longitude != 0
+					AND dropoff_longitude != 0
+					
+					##bq
+					WITH geo AS (
+						SELECT 
+							'Pickup' AS pickup_desc
+							,'Dropoff' AS dropoff_desc
+						  ,pickup_longitude
+							,ST_GEOGPOINT(pickup_longitude, pickup_latitude) as pickup
+							,ST_GEOGPOINT(dropoff_longitude, dropoff_latitude) as dropoff
+					--		,ST_MAKELINE(ST_GEOGPOINT(pickup_longitude, pickup_latitude), ST_GEOGPOINT(dropoff_longitude, dropoff_latitude)) As pd 
+						--	,ST_CENTROID(ST_MAKELINE(ST_GEOGPOINT(pickup_longitude, pickup_latitude), ST_GEOGPOINT(dropoff_longitude, dropoff_latitude))) AS centroid
+						  ,ST_DISTANCE(ST_GEOGPOINT(pickup_longitude, pickup_latitude), ST_GEOGPOINT(dropoff_longitude, dropoff_latitude)) AS distance
+						FROM `formal-cascade-571.temp.tmp_sm_geo`
+					)
+					SELECT
+					  pickup_desc
+						,dropoff_desc
+						,pickup
+						,dropoff
+						,ST_MAKELINE(pickup, dropoff) As pd
+						,distance/100 AS d
+						,IF(distance/100 > 100, '#FF0000', if(distance/100 < 80, '#38761D', '#0000FF')) AS distance
+					FROM geo
+					WHERE distance/100 > 5
+					ORDER BY pickup_longitude
+					
+					"
+			}
+		},
+		"-tabs-6": {
+			"tabname": "git - query2",
+			"query": {
+				"querytext": "select a.zipcode, a.population
+					from `bigquery-public-data.census_bureau_usa.population_by_zip_2010` a
+					WHERE gender = ''
+					ORDER bY 1
+					
+					
+					##bq
+					--33,119
+					select a.zipcode, z.zipcode_geom, a.population
+					from `bigquery-public-data.census_bureau_usa.population_by_zip_2010` a
+					JOIN `bigquery-public-data.utility_us.zipcode_area` z
+					ON z.zipcode = a.zipcode
+					WHERE gender = ''
+					ORDER bY 1
+					
+					##bq
+					-- 13,013
+					select a.zipcode, ST_GEOGFROMTEXT(za.zipcode_geom) AS zipcode_geom, a.population, ca.county_name, ca.county_geom
+					from `bigquery-public-data.census_bureau_usa.population_by_zip_2010` a
+					JOIN `bigquery-public-data.utility_us.zipcode_area` za
+					ON za.zipcode = a.zipcode
+					JOIN `bigquery-public-data.utility_us.us_county_area` ca
+					ON ST_WITHIN(ST_GEOGFROMTEXT(za.zipcode_geom), ca.county_geom)
+					WHERE gender = ''
+					ORDER bY 1
+					
+					##bq
+					-- 12,2936
+					select a.zipcode, ST_GEOGFROMTEXT(za.zipcode_geom) AS zipcode_geom, a.population, ca.name, ca.csa_geom
+					from `bigquery-public-data.census_bureau_usa.population_by_zip_2010` a
+					JOIN `bigquery-public-data.utility_us.zipcode_area` za
+					ON za.zipcode = a.zipcode
+					JOIN `bigquery-public-data.utility_us.us_csa_area` ca
+					ON ST_WITHIN(ST_GEOGFROMTEXT(za.zipcode_geom), ca.csa_geom)
+					WHERE gender = ''
+					ORDER bY 1
+					
+					##bq
+					-- 14,880
+					select a.zipcode, ST_GEOGFROMTEXT(za.zipcode_geom) AS zipcode_geom, a.population, ma.name, ma.msa_geom
+					from `bigquery-public-data.census_bureau_usa.population_by_zip_2010` a
+					JOIN `bigquery-public-data.utility_us.zipcode_area` za
+					ON za.zipcode = a.zipcode
+					JOIN `bigquery-public-data.utility_us.us_msa_area` ma
+					ON ST_WITHIN(ST_GEOGFROMTEXT(za.zipcode_geom), ma.msa_geom)
+					WHERE gender = ''
+					ORDER bY 1
+					
+					##bq
+					-- 29,474
+					select a.zipcode, ST_GEOGFROMTEXT(za.zipcode_geom) AS zipcode_geom, a.population, sa.state_name, sa.state_geom
+					from `bigquery-public-data.census_bureau_usa.population_by_zip_2010` a
+					JOIN `bigquery-public-data.utility_us.zipcode_area` za
+					ON za.zipcode = a.zipcode
+					JOIN `bigquery-public-data.utility_us.us_states_area` sa
+					ON ST_WITHIN(ST_GEOGFROMTEXT(za.zipcode_geom), sa.state_geom)
+					WHERE gender = ''
+					ORDER bY 1
+					
+					##bq
+					
+					"
+			}
+		},
+		"-tabs-7": {
+			"tabname": "git - query",
+			"query": {
+				"querytext": "##bq /* point */
+					/*
+					blue #0000ff 
+					green #00ff00
+					*/
+					SELECT ST_GEOGPOINT(longitude, latitude) AS geo, name, if(RAND() < .5, '#0000ff', '#00ff00') AS color, RAND() * 2 AS size
+					FROM `bigquery-public-data.new_york_citibike.citibike_stations`
+					LIMIT 500
+					
+					##bq /* line */
+					SELECT ST_MAKELINE(ST_GEOGPOINT(start_station_longitude, start_station_latitude), 
+					  ST_GEOGPOINT(end_station_longitude, end_station_latitude)) AS start_end, 
+						start_station_name, 
+						end_station_name
+					FROM `bigquery-public-data.new_york_citibike.citibike_trips`
+					LIMIT 50
+					
+					##bq /* polygon */
+					-- `bigquery-public-data.utility_us.us_states_area`
+					
+					##bq /* multiple points */
+					SELECT ST_GEOGPOINT(start_station_longitude, start_station_latitude) AS start_geo, 
+					  ST_GEOGPOINT(end_station_longitude, end_station_latitude) AS end_geo, 
+						start_station_name, 
+						end_station_name
+					FROM `bigquery-public-data.new_york_citibike.citibike_trips`
+					LIMIT 50
+					
+					
+					
+					"
+			}
+		},
+		"-tabs-8": {
+			"tabname": "params",
+			"query": {
+				"querytext": "select '<var_string>' as string_replace, 
+					  :var_string as string_type,
+						@var_string as string_at_var,
+						@string as string_at,	
+						<var_num> as num_replace, 
+						:var_num as num_type,
+						@var_num as num_at_var,
+						@num as num_at,	
+						<var_bol> as bool_replace, 
+						:var_bol as bool_type,
+						@var_bol as bool_at_type,
+						@bol as bool_at,	
+						'<var_rec>' AS rec_noindex_replace,
+						:var_rec AS rec_noindex_type,
+						@var_rec as rec_noindex_at_var,
+						@rec as rec_noindex_at,	
+						'<var_rec[]>' AS rec_blankindex_replace,
+						:var_rec[] As rec_blankindex_type,
+						@var_rec[] as rec_blankindex_at_var,
+						@rec[] as rec_blankindex_at,	
+						'<var_rec[#]>' AS rec_poundindex_replace,
+						:var_rec[#] As rec_poundindex_type,
+						@var_rec[#] as rec_poundindex_at_var,
+						@rec[#] as rec_poundindex_at,	
+						'<var_rec[0]>' As rec_zeroindex_replace,
+						:var_rec[0] As rec_zeroindex_type,
+						@var_rec[0] as rec_zeroindex_at_var,
+						@rec[0] as rec_zeroindex_at,		
+						'<var_rec[1]>' as rec_string_replace,
+						:var_rec[1] as rec_string_type,
+						@var_rec[1] as rec_string_at_var,
+						@rec[1] as rec_string_at,	
+						<var_rec[2]> as rec_num_replace,
+						:var_rec[2] as rec_num_type,
+						@var_rec[2] as rec_num_at_var,
+						@rec[2] as rec_num_at,	
+						<var_rec[3]> as rec_bool_replace,
+						:var_rec[3] as rec_bool_type,
+						@var_rec[3] as rec_bool_at_var,	
+						@rec[3] as rec_bool_at,
+						'<var_rec[col1]>' as rec_colname_string_replace,
+						:var_rec[col1] as rec_colname_string_type,
+						@var_rec[col1] as rec_colname_string_at_var,
+						@rec[col1] as rec_colname_string_at,	
+						<var_rec[col2]> as rec_colname_num_replace,
+						:var_rec[col2] as rec_colname_num_type,
+						@var_rec[col2] as rec_colname_num_at_var,
+						@rec[col2] as rec_colname_num_at,	
+						<var_rec[col3]> as rec_colname_bool_replace,
+						:var_rec[col3] as rec_colname_bool_type,
+						@var_rec[col3] as rec_colname_bool_at_var,	
+						@rec[col3] as rec_colname_bool_at,
+						'<var_j>' as string_replace_double_eval_1,
+						:var_j as string_type_double_eval_1,
+						@var_j as string_at_var_double_eval_1,
+						@j as string_at_double_eval_1,
+						'<var_p>' as string_replace_double_eval_2,
+						:var_p as string_type_double_eval_2,
+						@var_p as string_at_var_double_eval_2,
+						@p as string_at_double_eval_2,
+						'var_rec1[]' AS replace_rec1,
+						:var_rec1[] AS type_rec1,
+						@var_rec1[] AS var_rec1,
+						@rec1[] AS at_rec1,
+						'var_rec2[]' AS replace_rec2,
+						:var_rec2[] AS type_rec2,
+						@var_rec2[] AS var_rec2,
+						@rec2[] AS at_rec2,
+						'var_rec3[]' AS replace_rec3,
+						:var_rec3[] AS type_rec3,
+						@var_rec3[] AS var_rec3,
+						@rec3[] AS at_rec3,
+						'var_rec4[]' AS replace_rec4,
+						:var_rec4[] AS type_rec4,
+						@var_rec4[] AS var_rec4,
+						@rec4[] AS at_rec4,
+						'var_rec5[]' AS replace_rec5,
+						:var_rec5[] AS type_rec5,
+						@var_rec5[] AS var_rec5,
+						@rec5[] AS at_rec5,
+						'var_rec6[]' AS replace_rec6,
+						:var_rec6[] AS type_rec6,
+						@var_rec6[] AS var_rec6,
+						@rec6[] AS at_rec6,
+						'var_rec7[]' AS replace_rec7,
+						:var_rec7[] AS type_rec7,
+						@var_rec7[] AS var_rec7,
+						@rec7[] AS at_rec7,
+						'var_rec8[]' AS replace_rec8,
+						:var_rec8[] AS type_rec8,
+						@var_rec8[] AS var_rec8,
+						@rec8[] AS at_rec8,
+						'var_test1[]' AS replace_test1,
+						:var_test1[] AS type_test1,
+						@var_test1[] AS var_test1,
+						@test1[] AS at_test1,
+						'var_test2[]' AS replace_test2,
+						:var_test2[] AS type_test2,
+						@var_test2[] AS var_test2,
+						@test2[] AS at_test2,
+						'var_test3[]' AS replace_test3,
+						:var_test3[] AS type_test3,
+						@var_test3[] AS var_test3,
+						@test3[] AS at_test3,
+						'var_test4[]' AS replace_test4,
+						:var_test4[] AS type_test4,
+						@var_test4[] AS var_test4,
+						@test4[] AS at_test4,
+						'var_test5[]' AS replace_test5,
+						:var_test5[] AS type_test5,
+						@var_test5[] AS var_test5,
+						@test5[] AS at_test5,
+						'var_test6[]' AS replace_test6,
+						:var_test6[] AS type_test6,
+						@var_test6[] AS var_test6,
+						@test6[] AS at_test6,
+						'var_test7[]' AS replace_test7,
+						:var_test7[] AS type_test7,
+						@var_test7[] AS var_test7,
+						@test7[] AS at_test7,
+						'var_test8[]' AS replace_test8,
+						:var_test8[] AS type_test8,
+						@var_test8[] AS var_test8,
+						@test8[] AS at_test8	
+					"
+			}
+		},
+		"-tabs-11": {
+			"tabname": "git - ddl(2)",
+			"query": {
+				"querytext": "--https://cloud.google.com/bigquery/docs/data-definition-language#creating_a_new_table_from_an_existing_table
+					##bq
+					#standardSQL
+					--Creating a new table
+					CREATE TABLE `formal-cascade-571.temp.tmp_sm_ddl1`
+					(
+					 x INT64 OPTIONS(description=\"An optional INTEGER field\"),
+					 y STRUCT<
+						 a ARRAY<STRING> OPTIONS(description=\"A repeated STRING field\"),
+						 b BOOL
+					 >
+					)
+					PARTITION BY DATE(_PARTITIONTIME)
+					OPTIONS(
+					 expiration_timestamp=TIMESTAMP \"2020-01-01 00:00:00 UTC\",
+					 partition_expiration_days=1,
+					 description=\"a table that expires in 2020, with each partition living for 24 hours\",
+					 labels=[(\"org_unit\", \"development\")]
+					)
+					
+					##bq
+					#standardSQL
+					--Creating a new table from an existing table
+					CREATE TABLE `formal-cascade-571.temp.tmp_sm_ddl2`
+					OPTIONS(
+					 description=\"Top ten words per Shakespeare corpus\"
+					) AS
+					SELECT
+					 corpus,
+					 ARRAY_AGG(STRUCT(word, word_count) ORDER BY word_count DESC LIMIT 10) AS top_words
+					FROM `bigquery-public-data.samples.shakespeare`
+					GROUP BY corpus; 
+					 
+					 
+					##bq
+					#standardSQL
+					-- Creating a table only if the table doesn't exist
+					CREATE TABLE IF NOT EXISTS  `formal-cascade-571.temp.tmp_sm_ddl2` (x INT64, y STRUCT<a ARRAY<STRING>, b BOOL>)
+					OPTIONS(
+					 expiration_timestamp=TIMESTAMP \"2020-01-01 00:00:00 UTC\",
+					 description=\"a table that expires in 2020\",
+					 labels=[(\"org_unit\", \"development\")]
+					)
+					
+					##bq
+					#standardSQL
+					-- Creating or replacing a table
+					CREATE OR REPLACE TABLE `formal-cascade-571.temp.tmp_sm_ddl3` (x INT64, y STRUCT<a ARRAY<STRING>, b BOOL>)
+					OPTIONS(
+					 expiration_timestamp=TIMESTAMP \"2020-01-01 00:00:00 UTC\",
+					 description=\"a table that expires in 2020\",
+					 labels=[(\"org_unit\", \"development\")]
+					)
+					
+					##bq
+					#standardSQL
+					-- Creating a table with REQUIRED columns
+					CREATE TABLE `formal-cascade-571.temp.tmp_sm_ddl4` (
+					 x INT64 NOT NULL,
+					 y STRUCT<
+						 a ARRAY<STRING>,
+						 b BOOL NOT NULL,
+						 c FLOAT64
+					 > NOT NULL,
+					 z STRING
+					)
+					 
+					##bq
+					#standardSQL
+					--Creating a partitioned table
+					CREATE TABLE `formal-cascade-571.temp.tmp_sm_ddl5` (transaction_id INT64, transaction_date DATE)
+					PARTITION BY transaction_date
+					OPTIONS(
+					 partition_expiration_days=3,
+					 description=\"a table partitioned by transaction_date\"
+					)
+					
+					##bq
+					#standardSQL
+					--Creating a partitioned table from the result of a query
+					CREATE TABLE `formal-cascade-571.temp.tmp_sm_ddl6`
+					PARTITION BY date
+					OPTIONS (
+					 partition_expiration_days=365,
+					 description=\"weather stations with precipitation, partitioned by day\"
+					) AS
+					SELECT
+					 DATE(CAST(year AS INT64), CAST(mo AS INT64), CAST(da AS INT64)) AS date,
+					 (SELECT ANY_VALUE(name) FROM `bigquery-public-data.noaa_gsod.stations` AS stations
+						WHERE stations.usaf = stn) AS station_name,  -- Stations may have multiple names
+					 prcp
+					FROM `bigquery-public-data.noaa_gsod.gsod2017` AS weather
+					WHERE prcp != 99.9  -- Filter unknown values
+					 AND prcp > 0      -- Filter stations/days with no precipitation
+					
+					##bq
+					-- Creating a new view
+					#standardSQL
+					CREATE VIEW `formal-cascade-571.temp.tmp_sm_ddl_v1`
+					OPTIONS(
+					 expiration_timestamp=TIMESTAMP_ADD(CURRENT_TIMESTAMP(), INTERVAL 48 HOUR),
+					 friendly_name=\"newview\",
+					 description=\"a view that expires in 2 days\",
+					 labels=[(\"org_unit\", \"development\")]
+					)
+					AS SELECT 'column_1' as c1, 'column_2' as c2, 'column_3' as c3
+					
+					##bq
+					-- Creating a view only if the view doesn't exist
+					#standardSQL
+					CREATE VIEW IF NOT EXISTS `formal-cascade-571.temp.tmp_sm_ddl_v1`
+					OPTIONS(
+					 expiration_timestamp=TIMESTAMP_ADD(CURRENT_TIMESTAMP(), INTERVAL 48 HOUR),
+					 friendly_name=\"newview\",
+					 description=\"a view that expires in 2 days\",
+					 labels=[(\"org_unit\", \"development\")]
+					)
+					AS SELECT 'column_1' as c1, 'column_2' as c2, 'column_3' as c3
+					
+					##bq
+					-- Creating or replacing a view
+					#standardSQL
+					CREATE OR REPLACE VIEW `formal-cascade-571.temp.tmp_sm_ddl_v1`
+					OPTIONS(
+					 expiration_timestamp=TIMESTAMP_ADD(CURRENT_TIMESTAMP(), INTERVAL 48 HOUR),
+					 friendly_name=\"newview\",
+					 description=\"a view that expires in 1 days\",
+					 labels=[(\"org_unit\", \"development\")]
+					)
+					AS SELECT 'column_1' as c1, 'column_2' as c2, 'column_3' as c3
+					
+					##bq
+					-- Deleting a table
+					DROP TABLE `formal-cascade-571.temp.tmp_sm_ddl1`
+					
+					##bq
+					-- Deleting a table only if the table exists
+					DROP TABLE IF EXISTS `formal-cascade-571.temp.tmp_sm_ddl1`
+					
+					##bq
+					-- Deleting a view
+					DROP VIEW `formal-cascade-571.temp.tmp_sm_ddl_v1`
+					
+					##bq
+					-- Deleting a view only if the view exists
+					DROP VIEW IF EXISTS `formal-cascade-571.temp.tmp_sm_ddl_v1`
+					
+					##bq
+					-- models
+					-- 
+					#standardSQL
+					CREATE MODEL `formal-cascade-571.temp.tmp_sm_natality_model2`
+					OPTIONS
+					  (model_type='linear_reg',
+					    input_label_cols=['weight_pounds']) AS
+					SELECT
+					  weight_pounds,
+					  is_male,
+					  gestation_weeks,
+					  mother_age,
+					  CAST(mother_race AS string) AS mother_race
+					FROM
+					  `bigquery-public-data.samples.natality`
+					WHERE
+					  weight_pounds IS NOT NULL
+					  AND RAND() < 0.001
+					LIMIT 100
+					
+					##bq
+					-- clean up
+					drop table `formal-cascade-571.temp.tmp_sm_ddl`
+					drop table `formal-cascade-571.temp.tmp_sm_ddl2`
+					drop table `formal-cascade-571.temp.tmp_sm_ddl3`
+					drop table `formal-cascade-571.temp.tmp_sm_ddl4`
+					drop table `formal-cascade-571.temp.tmp_sm_ddl5`
+					drop table `formal-cascade-571.temp.tmp_sm_ddl6`
+					
+					"
+			}
+		},
+		"-tabs-12": {
+			"tabname": "git - query3(2)",
+			"query": {
+				"querytext": "##bq
+					WITH trips AS (
+						select pickup_datetime, pickup_longitude, pickup_latitude, dropoff_longitude, dropoff_latitude
+						FROM `bigquery-public-data.new_york.tlc_yellow_trips_2016`
+						WHERE pickup_longitude IS NOT NULL
+						AND pickup_latitude IS NOT NULL
+						AND dropoff_longitude IS NOT NULL
+						AND dropoff_longitude IS NOT NULL
+						AND EXTRACT(MONTH FROM pickup_datetime) = 1
+						LIMIT 100000
+					)
+					SELECT *
+					FROM trips
+					WHERE pickup_longitude >= -90 AND pickup_longitude < 91
+					AND pickup_latitude >= -90 AND pickup_latitude < 91
+					AND dropoff_longitude >= -90 AND dropoff_longitude < 91
+					AND dropoff_latitude >= -90 AND dropoff_latitude < 91
+					AND pickup_longitude != 0
+					AND dropoff_longitude != 0
+					
+					##bq
+					WITH geo AS (
+						SELECT 
+							'Pickup' AS pickup_desc
+							,'Dropoff' AS dropoff_desc
+						  ,pickup_longitude
+							,ST_GEOGPOINT(pickup_longitude, pickup_latitude) as pickup
+							,ST_GEOGPOINT(dropoff_longitude, dropoff_latitude) as dropoff
+					--		,ST_MAKELINE(ST_GEOGPOINT(pickup_longitude, pickup_latitude), ST_GEOGPOINT(dropoff_longitude, dropoff_latitude)) As pd 
+						--	,ST_CENTROID(ST_MAKELINE(ST_GEOGPOINT(pickup_longitude, pickup_latitude), ST_GEOGPOINT(dropoff_longitude, dropoff_latitude))) AS centroid
+						  ,ST_DISTANCE(ST_GEOGPOINT(pickup_longitude, pickup_latitude), ST_GEOGPOINT(dropoff_longitude, dropoff_latitude)) AS distance
+						FROM `formal-cascade-571.temp.tmp_sm_geo`
+					)
+					SELECT
+					  pickup_desc
+						,dropoff_desc
+						,pickup
+						,dropoff
+						,ST_MAKELINE(pickup, dropoff) As pd
+						,distance/100 AS d
+						,IF(distance/100 > 100, '#FF0000', if(distance/100 < 80, '#38761D', '#0000FF')) AS distance
+					FROM geo
+					WHERE distance/100 > 5
+					ORDER BY pickup_longitude
+					
+					"
+			}
+		},
+		"-tabs-13": {
+			"tabname": "git - query2(2)",
+			"query": {
+				"querytext": "select a.zipcode, a.population
+					from `bigquery-public-data.census_bureau_usa.population_by_zip_2010` a
+					WHERE gender = ''
+					ORDER bY 1
+					
+					
+					##bq
+					--33,119
+					select a.zipcode, z.zipcode_geom, a.population
+					from `bigquery-public-data.census_bureau_usa.population_by_zip_2010` a
+					JOIN `bigquery-public-data.utility_us.zipcode_area` z
+					ON z.zipcode = a.zipcode
+					WHERE gender = ''
+					ORDER bY 1
+					
+					##bq
+					-- 13,013
+					select a.zipcode, ST_GEOGFROMTEXT(za.zipcode_geom) AS zipcode_geom, a.population, ca.county_name, ca.county_geom
+					from `bigquery-public-data.census_bureau_usa.population_by_zip_2010` a
+					JOIN `bigquery-public-data.utility_us.zipcode_area` za
+					ON za.zipcode = a.zipcode
+					JOIN `bigquery-public-data.utility_us.us_county_area` ca
+					ON ST_WITHIN(ST_GEOGFROMTEXT(za.zipcode_geom), ca.county_geom)
+					WHERE gender = ''
+					ORDER bY 1
+					
+					##bq
+					-- 12,2936
+					select a.zipcode, ST_GEOGFROMTEXT(za.zipcode_geom) AS zipcode_geom, a.population, ca.name, ca.csa_geom
+					from `bigquery-public-data.census_bureau_usa.population_by_zip_2010` a
+					JOIN `bigquery-public-data.utility_us.zipcode_area` za
+					ON za.zipcode = a.zipcode
+					JOIN `bigquery-public-data.utility_us.us_csa_area` ca
+					ON ST_WITHIN(ST_GEOGFROMTEXT(za.zipcode_geom), ca.csa_geom)
+					WHERE gender = ''
+					ORDER bY 1
+					
+					##bq
+					-- 14,880
+					select a.zipcode, ST_GEOGFROMTEXT(za.zipcode_geom) AS zipcode_geom, a.population, ma.name, ma.msa_geom
+					from `bigquery-public-data.census_bureau_usa.population_by_zip_2010` a
+					JOIN `bigquery-public-data.utility_us.zipcode_area` za
+					ON za.zipcode = a.zipcode
+					JOIN `bigquery-public-data.utility_us.us_msa_area` ma
+					ON ST_WITHIN(ST_GEOGFROMTEXT(za.zipcode_geom), ma.msa_geom)
+					WHERE gender = ''
+					ORDER bY 1
+					
+					##bq
+					-- 29,474
+					select a.zipcode, ST_GEOGFROMTEXT(za.zipcode_geom) AS zipcode_geom, a.population, sa.state_name, sa.state_geom
+					from `bigquery-public-data.census_bureau_usa.population_by_zip_2010` a
+					JOIN `bigquery-public-data.utility_us.zipcode_area` za
+					ON za.zipcode = a.zipcode
+					JOIN `bigquery-public-data.utility_us.us_states_area` sa
+					ON ST_WITHIN(ST_GEOGFROMTEXT(za.zipcode_geom), sa.state_geom)
+					WHERE gender = ''
+					ORDER bY 1
+					
+					##bq
+					
+					"
+			}
+		},
+		"-tabs-14": {
+			"tabname": "git - query(2)",
+			"query": {
+				"querytext": "##bq /* point */
+					/*
+					blue #0000ff 
+					green #00ff00
+					*/
+					SELECT ST_GEOGPOINT(longitude, latitude) AS geo, name, if(RAND() < .5, '#0000ff', '#00ff00') AS color, RAND() * 2 AS size
+					FROM `bigquery-public-data.new_york_citibike.citibike_stations`
+					LIMIT 500
+					
+					##bq /* line */
+					SELECT ST_MAKELINE(ST_GEOGPOINT(start_station_longitude, start_station_latitude), 
+					  ST_GEOGPOINT(end_station_longitude, end_station_latitude)) AS start_end, 
+						start_station_name, 
+						end_station_name
+					FROM `bigquery-public-data.new_york_citibike.citibike_trips`
+					LIMIT 50
+					
+					##bq /* polygon */
+					-- `bigquery-public-data.utility_us.us_states_area`
+					
+					##bq /* multiple points */
+					SELECT ST_GEOGPOINT(start_station_longitude, start_station_latitude) AS start_geo, 
+					  ST_GEOGPOINT(end_station_longitude, end_station_latitude) AS end_geo, 
+						start_station_name, 
+						end_station_name
+					FROM `bigquery-public-data.new_york_citibike.citibike_trips`
+					LIMIT 50
+					
+					
+					
+					"
+			}
+		},
+		"-tabs-15": {
+			"tabname": "params(2)",
+			"query": {
+				"querytext": "select '<var_string>' as string_replace, 
+					  :var_string as string_type,
+						@var_string as string_at_var,
+						@string as string_at,	
+						<var_num> as num_replace, 
+						:var_num as num_type,
+						@var_num as num_at_var,
+						@num as num_at,	
+						<var_bol> as bool_replace, 
+						:var_bol as bool_type,
+						@var_bol as bool_at_type,
+						@bol as bool_at,	
+						'<var_rec>' AS rec_noindex_replace,
+						:var_rec AS rec_noindex_type,
+						@var_rec as rec_noindex_at_var,
+						@rec as rec_noindex_at,	
+						'<var_rec[]>' AS rec_blankindex_replace,
+						:var_rec[] As rec_blankindex_type,
+						@var_rec[] as rec_blankindex_at_var,
+						@rec[] as rec_blankindex_at,	
+						'<var_rec[#]>' AS rec_poundindex_replace,
+						:var_rec[#] As rec_poundindex_type,
+						@var_rec[#] as rec_poundindex_at_var,
+						@rec[#] as rec_poundindex_at,	
+						'<var_rec[0]>' As rec_zeroindex_replace,
+						:var_rec[0] As rec_zeroindex_type,
+						@var_rec[0] as rec_zeroindex_at_var,
+						@rec[0] as rec_zeroindex_at,		
+						'<var_rec[1]>' as rec_string_replace,
+						:var_rec[1] as rec_string_type,
+						@var_rec[1] as rec_string_at_var,
+						@rec[1] as rec_string_at,	
+						<var_rec[2]> as rec_num_replace,
+						:var_rec[2] as rec_num_type,
+						@var_rec[2] as rec_num_at_var,
+						@rec[2] as rec_num_at,	
+						<var_rec[3]> as rec_bool_replace,
+						:var_rec[3] as rec_bool_type,
+						@var_rec[3] as rec_bool_at_var,	
+						@rec[3] as rec_bool_at,
+						'<var_rec[col1]>' as rec_colname_string_replace,
+						:var_rec[col1] as rec_colname_string_type,
+						@var_rec[col1] as rec_colname_string_at_var,
+						@rec[col1] as rec_colname_string_at,	
+						<var_rec[col2]> as rec_colname_num_replace,
+						:var_rec[col2] as rec_colname_num_type,
+						@var_rec[col2] as rec_colname_num_at_var,
+						@rec[col2] as rec_colname_num_at,	
+						<var_rec[col3]> as rec_colname_bool_replace,
+						:var_rec[col3] as rec_colname_bool_type,
+						@var_rec[col3] as rec_colname_bool_at_var,	
+						@rec[col3] as rec_colname_bool_at,
+						'<var_j>' as string_replace_double_eval_1,
+						:var_j as string_type_double_eval_1,
+						@var_j as string_at_var_double_eval_1,
+						@j as string_at_double_eval_1,
+						'<var_p>' as string_replace_double_eval_2,
+						:var_p as string_type_double_eval_2,
+						@var_p as string_at_var_double_eval_2,
+						@p as string_at_double_eval_2,
+						'var_rec1[]' AS replace_rec1,
+						:var_rec1[] AS type_rec1,
+						@var_rec1[] AS var_rec1,
+						@rec1[] AS at_rec1,
+						'var_rec2[]' AS replace_rec2,
+						:var_rec2[] AS type_rec2,
+						@var_rec2[] AS var_rec2,
+						@rec2[] AS at_rec2,
+						'var_rec3[]' AS replace_rec3,
+						:var_rec3[] AS type_rec3,
+						@var_rec3[] AS var_rec3,
+						@rec3[] AS at_rec3,
+						'var_rec4[]' AS replace_rec4,
+						:var_rec4[] AS type_rec4,
+						@var_rec4[] AS var_rec4,
+						@rec4[] AS at_rec4,
+						'var_rec5[]' AS replace_rec5,
+						:var_rec5[] AS type_rec5,
+						@var_rec5[] AS var_rec5,
+						@rec5[] AS at_rec5,
+						'var_rec6[]' AS replace_rec6,
+						:var_rec6[] AS type_rec6,
+						@var_rec6[] AS var_rec6,
+						@rec6[] AS at_rec6,
+						'var_rec7[]' AS replace_rec7,
+						:var_rec7[] AS type_rec7,
+						@var_rec7[] AS var_rec7,
+						@rec7[] AS at_rec7,
+						'var_rec8[]' AS replace_rec8,
+						:var_rec8[] AS type_rec8,
+						@var_rec8[] AS var_rec8,
+						@rec8[] AS at_rec8,
+						'var_test1[]' AS replace_test1,
+						:var_test1[] AS type_test1,
+						@var_test1[] AS var_test1,
+						@test1[] AS at_test1,
+						'var_test2[]' AS replace_test2,
+						:var_test2[] AS type_test2,
+						@var_test2[] AS var_test2,
+						@test2[] AS at_test2,
+						'var_test3[]' AS replace_test3,
+						:var_test3[] AS type_test3,
+						@var_test3[] AS var_test3,
+						@test3[] AS at_test3,
+						'var_test4[]' AS replace_test4,
+						:var_test4[] AS type_test4,
+						@var_test4[] AS var_test4,
+						@test4[] AS at_test4,
+						'var_test5[]' AS replace_test5,
+						:var_test5[] AS type_test5,
+						@var_test5[] AS var_test5,
+						@test5[] AS at_test5,
+						'var_test6[]' AS replace_test6,
+						:var_test6[] AS type_test6,
+						@var_test6[] AS var_test6,
+						@test6[] AS at_test6,
+						'var_test7[]' AS replace_test7,
+						:var_test7[] AS type_test7,
+						@var_test7[] AS var_test7,
+						@test7[] AS at_test7,
+						'var_test8[]' AS replace_test8,
+						:var_test8[] AS type_test8,
+						@var_test8[] AS var_test8,
+						@test8[] AS at_test8	
+					"
+			}
+		}
+	},
+	"parameters": {
+		"var_string": {
+			"type": "string",
+			"value": "abc",
+			"schema": ""
+		},
+		"var_num": {
+			"type": "number",
+			"value": "1",
+			"schema": ""
+		},
+		"var_bol": {
+			"type": "boolean",
+			"value": "true",
+			"schema": ""
+		},
+		"var_rec": {
+			"type": "record",
+			"value": "10,apple,true",
+			"schema": "col1,col2,col3"
+		},
+		"var_j": {
+			"type": "string",
+			"value": "<var_p>",
+			"schema": ""
+		},
+		"var_p": {
+			"type": "string",
+			"value": "apple",
+			"schema": ""
+		},
+		"var_rec1": {
+			"type": "record",
+			"value": "10,apple,true",
+			"schema": "a number,b string,c boolean"
+		},
+		"var_rec2": {
+			"type": "record",
+			"value": "10,apple,true",
+			"schema": "a,b,c"
+		},
+		"var_rec3": {
+			"type": "record",
+			"value": "10,apple,true",
+			"schema": ""
+		},
+		"var_rec4": {
+			"type": "record",
+			"value": "apple,10",
+			"schema": "name string, price, isfresh, color"
+		},
+		"var_rec5": {
+			"type": "record",
+			"value": ",10,,red",
+			"schema": "name,price,isfresh,color"
+		},
+		"var_rec6": {
+			"type": "record",
+			"value": ",",
+			"schema": "name string, price number, isfresh boolean, color string"
+		},
+		"var_rec7": {
+			"type": "record",
+			"value": "<var_string>,<var_num>",
+			"schema": ""
+		},
+		"var_rec8": {
+			"type": "record",
+			"value": "<var_value>",
+			"schema": ""
+		},
+		"var_value": {
+			"type": "string",
+			"value": "apple,10",
+			"schema": ""
+		},
+		"var_test1": {
+			"type": "record",
+			"value": "42,things",
+			"schema": "a number, b string"
+		},
+		"var_test2": {
+			"type": "record",
+			"value": "33,hello",
+			"schema": "aa,bb"
+		},
+		"var_test3": {
+			"type": "record",
+			"value": "1,322,foobar",
+			"schema": ""
+		},
+		"var_test4": {
+			"type": "record",
+			"value": "NotNumber",
+			"schema": "x number"
+		},
+		"var_test5": {
+			"type": "record",
+			"value": "33,34",
+			"schema": "x number,y number,z number"
+		},
+		"var_test6": {
+			"type": "record",
+			"value": "x,2,true,,2020-01-01",
+			"schema": "a string,b numeric,c boolean,d boolean,dd date"
+		},
+		"var_test7": {
+			"type": "record",
+			"value": "x1,x2,x2",
+			"schema": "a,,c"
+		},
+		"var_test8": {
+			"type": "record",
+			"value": "x1,x2",
+			"schema": "a string, b string, c string"
+		},
+		"var_test9": {
+			"type": "record",
+			"value": "33,,35",
+			"schema": "x number,y number,z number"
+		}
+	}
+}
